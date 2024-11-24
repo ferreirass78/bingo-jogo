@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Bingo</title>
+    <style>
+        /* Estilo geral da página */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #numero-sorteado {
+            font-size: 24px;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #007bff;
+            display: inline-block;
+            opacity: 0; /* Inicialmente invisível */
+            transform: translateY(50px); /* Inicialmente deslocado para baixo */
+            animation: fadeIn 1s forwards; /* Animação de aparecimento */
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Estilo para a cartela de bingo */
+        .cartela {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 10px;
+            margin: 20px 0;
+            padding: 10px;
+        }
+
+        .cartela div {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        /* Estilo para os números "Free" */
+        .cartela div.free {
+            background-color: #ffeb3b;
+        }
+
+        /* Estilo para os números marcados */
+        .cartela div.marked {
+            background-color: #4caf50;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        /* Para quando o mouse passar sobre os números */
+        .cartela div:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Jogo de Bingo</h1>
+        <div id="cartela" class="cartela"></div>
+        <button id="sorteio-btn">Sortear Número</button>
+        <div id="numero-sorteado" class="numero-sorteado"></div>
+        <div id="mensagem"></div>
+    </div>
+
+    <script>
+        // Função para gerar a cartela de bingo
+        function gerarCartela() {
+            const cartela = [];
+            const colunas = [
+                { min: 1, max: 15 },
+                { min: 16, max: 30 },
+                { min: 31, max: 45 },
+                { min: 46, max: 60 },
+                { min: 61, max: 75 }
+            ];
+
+            for (let i = 0; i < 5; i++) {
+                const coluna = [];
+                while (coluna.length < 5) {
+                    const num = Math.floor(Math.random() * (colunas[i].max - colunas[i].min + 1)) + colunas[i].min;
+                    if (!coluna.includes(num)) {
+                        coluna.push(num);
+                    }
+                }
+                cartela.push(coluna);
+            }
+
+            cartela[2][2] = 'Free'; // Marca o centro como "Free"
+
+            return cartela;
+        }
+
+        // Função para renderizar a cartela
+        function renderizarCartela(cartela) {
+            const cartelaDiv = document.getElementById('cartela');
+            cartelaDiv.innerHTML = ''; // Limpa a cartela antes de renderizar
+
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    const div = document.createElement('div');
+                    const numero = cartela[j][i];
+                    div.textContent = numero === 'Free' ? 'Free' : numero;
+                    if (numero === 'Free') {
+                        div.classList.add('free');
+                    } else {
+                        div.addEventListener('click', () => marcarNumero(j, i));
+                    }
+                    cartelaDiv.appendChild(div);
+                }
+            }
+        }
+
+        // Função para marcar um número na cartela
+        function marcarNumero(i, j) {
+            const cartelaDiv = document.getElementById('cartela');
+            const divs = cartelaDiv.getElementsByTagName('div');
+            const index = i * 5 + j; // Calcula o índice no grid de 5x5
+            const div = divs[index];
+
+            if (div.textContent !== 'Free') {
+                div.classList.add('marked');
+            }
+        }
+
+        // Função para sortear um número
+        let numerosSorteados = new Set();
+        function sortearNumero() {
+            const numero = Math.floor(Math.random() * 75) + 1;
+            if (!numerosSorteados.has(numero)) {
+                numerosSorteados.add(numero);
+
+                // Criar o efeito de animação para o número sorteado
+                const numeroSorteadoDiv = document.getElementById('numero-sorteado');
+                numeroSorteadoDiv.textContent = `Número Sorteado: ${numero}`;
+
+                // Reaplicar a animação para o novo número
+                numeroSorteadoDiv.style.animation = 'none';
+                numeroSorteadoDiv.offsetHeight; // Forçar reflow
+                numeroSorteadoDiv.style.animation = 'fadeIn 1s forwards';
+
+                verificarVitoria(numero);
+            } else {
+                sortearNumero(); // Se o número já foi sorteado, sorteia outro
+            }
+        }
+
+        // Função para verificar se a cartela foi completada
+        function verificarVitoria(numero) {
+            const cartelaDiv = document.getElementById('cartela');
+            const divs = cartelaDiv.getElementsByTagName('div');
+            let vitoria = true;
+
+            // Verifica se todos os números sorteados estão marcados
+            for (let i = 0; i < divs.length; i++) {
+                if (divs[i].textContent !== 'Free' && !divs[i].classList.contains('marked')) {
+                    vitoria = false;
+                    break;
+                }
+            }
+
+            if (vitoria) {
+                document.getElementById('mensagem').textContent = 'Você ganhou! Bingo!';
+            }
+        }
+
+        // Inicializando a cartela e sorteio
+        const cartela = gerarCartela();
+        renderizarCartela(cartela);
+
+        // Evento de clique no botão de sorteio
+        document.getElementById('sorteio-btn').addEventListener('click', sortearNumero);
+    </script>
+</body>
+</html>
